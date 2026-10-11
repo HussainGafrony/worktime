@@ -131,6 +131,34 @@ app.get('/api/entries', authenticate, route(async (req, res) => {
   return res.json(await listEntries({}, 100));
 }));
 
+app.get('/api/worker/summary', authenticate, route(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'worker') {
+    return fail(res, 403, 'WORKER_ONLY', 'Worker access is required.');
+  }
+
+  const rows = await Entry.aggregate([
+    { $match: { workerId: objectId(user.id) } },
+    {
+      $group: {
+        _id: null,
+        regular: { $sum: '$regular' },
+        overtime: { $sum: '$overtime' }
+      }
+    }
+  ]);
+
+  const summary = rows[0] || { regular: 0, overtime: 0 };
+  const regular = Number(summary.regular || 0);
+  const overtime = Number(summary.overtime || 0);
+
+  return res.json({
+    regular,
+    overtime,
+    total: regular + overtime
+  });
+}));
+
 app.post('/api/entries', authenticate, route(async (req, res) => {
   const user = (req as AuthenticatedRequest).user;
   if (user.role !== 'worker') {
