@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -k -n api,web \"npm:dev:api\" \"npm:dev:web\"",
     "build": "tsc -p tsconfig.app.json && tsc -p tsconfig.api.json && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:web": "vite",
+    "dev:api": "tsx watch api/dev.ts"
   },
   "dependencies": {
     "bcryptjs": "3.0.2",
@@ -25,7 +27,9 @@
     "@vitejs/plugin-react": "5.2.0",
     "typescript": "5.9.3",
     "vite": "8.3.3",
-    "@types/jsonwebtoken": "9.0.10"
+    "@types/jsonwebtoken": "9.0.10",
+    "concurrently": "9.2.1",
+    "tsx": "4.20.6"
   },
   "engines": {
     "node": ">=22"
