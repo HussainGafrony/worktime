@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.app.json && tsc -p tsconfig.api.json && vite build",
     "preview": "vite preview",
     "dev:web": "vite",
-    "dev:api": "tsx watch api/dev.ts"
+    "dev:api": "node --env-file=.env --watch --import tsx api/dev.ts"
   },
   "dependencies": {
     "bcryptjs": "3.0.2",
