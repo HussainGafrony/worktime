@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { randomInt } from 'node:crypto';
 import { Entry, Site, Worker } from './db.js';
-import { workerPinKey } from './auth.js';
+import { pinLookupSecret, workerPinKey } from './auth.js';
 import { appDate, hoursFor, isLateSubmission } from './time.js';
 
 const demoWorkerNames = [
@@ -25,7 +25,13 @@ function previousDate(daysAgo: number) {
 
 async function getOrCreateDemoWorker(name: string) {
   const existingWorker = await Worker.findOne({ name });
-  if (existingWorker) return { worker: existingWorker, created: false };
+  if (existingWorker) {
+    if (!existingWorker.active) {
+      existingWorker.active = true;
+      await existingWorker.save();
+    }
+    return { worker: existingWorker, created: false };
+  }
 
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const pin = String(randomInt(100000, 1000000));
@@ -63,6 +69,10 @@ async function getOrCreateDemoSite(name: string) {
 }
 
 export async function seedDemoData() {
+  // Fail before writing anything when worker PIN authentication is not configured.
+  // The same secret is required for normal worker login.
+  pinLookupSecret();
+
   let workersCreated = 0;
   let sitesCreated = 0;
   let entriesCreated = 0;
@@ -91,11 +101,7 @@ export async function seedDemoData() {
       const worker = workers[workerIndex];
       const site = sites[(day + workerIndex) % sites.length];
 
-      const entryAlreadyExists = await Entry.exists({
-        workerId: worker._id,
-        date
-      });
-      if (entryAlreadyExists) continue;
+      if (await Entry.exists({ workerId: worker._id, date })) continue;
 
       const isSaturday = weekday === 6;
       const start = workerIndex % 2 === 0 ? '08:00' : '07:30';
@@ -106,7 +112,9 @@ export async function seedDemoData() {
       const calculatedHours = hoursFor(date, start, end);
       const submittedAt = new Date(`${date}T12:00:00Z`);
 
-      if ((day + workerIndex) % 5 === 0) {
+      // Mark some historical rows late. Never create a submission timestamp
+      // in the future for today's demo rows.
+      if (day > 0 && (day + workerIndex) % 5 === 0) {
         submittedAt.setUTCDate(submittedAt.getUTCDate() + 1);
       }
 
