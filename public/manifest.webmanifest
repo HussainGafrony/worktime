@@ -1,0 +1,13 @@
+{
+  "name": "WorkTime",
+  "short_name": "WorkTime",
+  "description": "Worker time reporting",
+  "start_url": "/worker",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFE500",
+  "icons": [
+    { "src": "/kt-app-icon.png", "sizes": "128x128", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
