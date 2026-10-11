@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError } from '../api';
-import { Alert, Header, type SharedPageProps } from '../components/Common';
+import { Alert, Header, Stat, type SharedPageProps } from '../components/Common';
 import { WorkerEntriesTable } from '../components/EntriesTable';
 import { errorMessage, t } from '../i18n';
-import { isSunday, localToday, makeTimeOptions } from '../lib/date';
-import type { Entry, Site } from '../types';
+import { formatHours, isSunday, localToday, makeTimeOptions } from '../lib/date';
+import type { Entry, Site, WorkerHoursSummary } from '../types';
 
 const timeOptions = makeTimeOptions();
 
@@ -16,6 +16,7 @@ export function WorkerPage({ lang, setLang, logout, name }: SharedPageProps) {
   const [start, setStart] = useState('08:00');
   const [end, setEnd] = useState('16:00');
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [hoursSummary, setHoursSummary] = useState<WorkerHoursSummary>({ regular: 0, overtime: 0, total: 0 });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -31,12 +32,14 @@ export function WorkerPage({ lang, setLang, logout, name }: SharedPageProps) {
     setLoading(true);
     setError('');
     try {
-      const [siteRows, entryRows] = await Promise.all([
+      const [siteRows, entryRows, summary] = await Promise.all([
         api<Site[]>('/sites'),
-        api<Entry[]>('/entries')
+        api<Entry[]>('/entries'),
+        api<WorkerHoursSummary>('/worker/summary')
       ]);
       setSites(siteRows);
       setEntries(entryRows);
+      setHoursSummary(summary);
     } catch (err) {
       handleError(err);
     } finally {
@@ -75,20 +78,14 @@ export function WorkerPage({ lang, setLang, logout, name }: SharedPageProps) {
     <main className="shell wide">
       <Header title={t(lang, 'worker')} lang={lang} setLang={setLang} logout={logout} name={name} />
 
-      <section className="card worker-hours-card">
-        <h2>{t(lang, 'workHoursInfo')}</h2>
-        <div className="worker-hours-grid">
-          <div>
-            <strong>{t(lang, 'regular')}</strong>
-            <p>{t(lang, 'weekdayRegularHours')}</p>
-            <p>{t(lang, 'saturdayRegularHours')}</p>
-          </div>
-          <div>
-            <strong>{t(lang, 'overtime')}</strong>
-            <p>{t(lang, 'overtimeRule')}</p>
-          </div>
+      <section className="card worker-hours-summary">
+        <h2>{t(lang, 'workHoursSummary')}</h2>
+        <div className="stats worker-summary-stats">
+          <Stat value={formatHours(hoursSummary.regular)} label={t(lang, 'totalRegular')} />
+          <Stat value={formatHours(hoursSummary.overtime)} label={t(lang, 'totalOvertime')} />
+          <Stat value={formatHours(hoursSummary.total)} label={t(lang, 'totalHours')} />
         </div>
-        <Alert kind="info">{t(lang, 'sundayHoursRule')}</Alert>
+        <Alert kind="info">{t(lang, 'sundayTotalsNote')}</Alert>
       </section>
 
       <form className="card" onSubmit={submit}>
