@@ -58,3 +58,9 @@ export type DashboardSummary = {
   submittedToday: number;
   missingToday: number;
 };
+
+export type WorkerHoursSummary = {
+  regular: number;
+  overtime: number;
+  total: number;
+};
