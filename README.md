@@ -125,6 +125,60 @@ The code is split by responsibility, but the flow stays simple:
 3. Mongoose reads or writes MongoDB.
 4. The API returns JSON to React.
 
+## Run locally
+
+Requirements:
+
+- Node.js 22 or newer
+- npm
+- MongoDB running locally, or a MongoDB Atlas connection string
+
+First-time setup:
+
+```bash
+git clone https://github.com/HussainGafrony/worktime.git
+cd worktime
+npm install
+cp .env.example .env
+npm run dev
+```
+
+On Windows Command Prompt, use `copy .env.example .env` instead of `cp .env.example .env`.
+
+The default local setup uses:
+
+- Web app: `http://localhost:5173`
+- API: `http://localhost:3001`
+- Health check: `http://localhost:5173/api/health`
+- MongoDB: `mongodb://127.0.0.1:27017/worktimecluster`
+- Timezone: `Europe/Athens`
+- Initial admin: `admin@example.com` / `ChangeMe123!`
+
+Vite proxies every `/api` request from port 5173 to the API on port 3001, so the frontend needs no separate API URL.
+
+The API dev command loads `.env` directly. Vite also loads the same `.env` file. Do not commit `.env`; it is already ignored by Git.
+
+If you prefer MongoDB Atlas, replace only `MONGODB_URI` in `.env` with your Atlas URI and keep the database name in the URI path, for example `/.../worktimecluster?...`. Do not paste database passwords into source code.
+
+The initial admin is created only when the `admins` collection is empty. Changing `ADMIN_EMAIL` or `ADMIN_PASSWORD` later does not reset an existing admin account.
+
+To enable local demo data, set `VITE_ENABLE_SEED_DATA=true` in `.env` and restart `npm run dev`.
+
+### Local smoke test
+
+After `npm run dev` starts successfully:
+
+1. Open `http://localhost:5173/api/health` and confirm `{"ok":true,"database":"worktimecluster"}`.
+2. Open `http://localhost:5173/admin` and sign in with the admin values from `.env`.
+3. Create a site and a worker with a numeric PIN.
+4. Sign out, open `/worker`, and sign in with that PIN.
+5. Submit a weekday entry and confirm regular/overtime values.
+6. Submit an older date and confirm it appears as late.
+7. Submit a Sunday entry and confirm it records 0 hours.
+8. Try the same worker/date twice and confirm the duplicate is blocked.
+9. In admin, test filters, pagination, accountant note editing, CSV export, and Excel export.
+10. Disable a worker and confirm its existing session can no longer access protected data.
+
 ## Build
 
 ```bash
