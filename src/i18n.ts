@@ -35,7 +35,7 @@ export const translations = {
     totalRegular: 'Total regular hours',
     totalOvertime: 'Total overtime hours',
     noEntries: 'No entries found.',
-    dashboard: 'Accountant dashboard',
+    dashboard: 'Dashboard',
     timesheets: 'Timesheets',
     workers: 'Workers',
     sites: 'Sites',
@@ -282,7 +282,8 @@ const errorKeys: Record<string, TranslationKey> = {
   SERVER_ERROR: 'genericError'
 };
 
-export function t(lang: Lang, key: TranslationKey) {
+export function t(lang: Lang, key?: TranslationKey) {
+  if (!key) return '' ;
   return translations[lang][key];
 }
 

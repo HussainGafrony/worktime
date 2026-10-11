@@ -54,7 +54,7 @@ export function LoginPage({
         <div className="login-hero-top">
           <div className="brand-block">
             <b>WorkTime</b>
-            <span>{portal === 'worker' ? t(lang, 'workerLink') : t(lang, 'adminLink')}</span>
+            <span>{portal === 'worker' ? t(lang, '') : t(lang, '')}</span>
           </div>
           <LanguageToggle lang={lang} setLang={setLang} />
         </div>
