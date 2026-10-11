@@ -87,7 +87,7 @@ const entrySchema = new mongoose.Schema<EntryRecord>({
   overtime: { type: Number, required: true, default: 0, min: 0 },
   submittedAt: { type: Date, required: true, default: Date.now },
   isLate: { type: Boolean, required: true, default: false },
-  adminNote: { type: String, required: true, default: '', maxlength: 500 }
+  adminNote: { type: String, default: '', maxlength: 500 }
 }, schemaOptions);
 entrySchema.index({ workerId: 1, date: 1 }, { unique: true });
 entrySchema.index({ date: -1, workerId: 1 });
