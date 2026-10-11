@@ -156,8 +156,17 @@ export async function connectDatabase() {
       connectionPromise = mongoose.connect(uri, {
         serverSelectionTimeoutMS: 10000,
         maxPoolSize: 10
-      }).catch(() => {
+      }).catch((error: unknown) => {
         connectionPromise = null;
+
+        if (process.env.NODE_ENV !== 'production') {
+          const details = error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : String(error);
+          const safeDetails = details.replace(/mongodb(?:\+srv)?:\/\/[^\s]+/gi, '[MongoDB URI hidden]');
+          console.error('MongoDB connection failed:', safeDetails);
+        }
+
         throw new AppError(503, 'DATABASE_UNAVAILABLE', 'Database connection is unavailable.');
       });
     }
