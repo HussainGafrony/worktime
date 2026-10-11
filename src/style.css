@@ -8,9 +8,7 @@ textarea:focus{border-color:var(--black);box-shadow:0 0 0 3px rgba(255,229,0,.42
 .stats [role="button"]{cursor:pointer}
 .stats [role="button"]:focus{outline:3px solid rgba(255,229,0,.65);outline-offset:2px}
 
-.worker-hours-card{border-top:5px solid var(--yellow)}
-.worker-hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.worker-hours-grid>div{padding:14px;background:var(--light);border:1px solid #dedede;border-radius:12px}
-.worker-hours-grid strong{display:block;margin-bottom:8px}
-.worker-hours-grid p{margin:5px 0;color:#555;font-size:14px;line-height:1.45}
-@media(max-width:680px){.worker-hours-grid{grid-template-columns:1fr}}
+
+.worker-hours-summary{border-top:5px solid var(--yellow)}
+.worker-summary-stats{margin-bottom:0}
+.worker-hours-summary .alert{margin-top:14px}
