@@ -75,6 +75,22 @@ export function WorkerPage({ lang, setLang, logout, name }: SharedPageProps) {
     <main className="shell wide">
       <Header title={t(lang, 'worker')} lang={lang} setLang={setLang} logout={logout} name={name} />
 
+      <section className="card worker-hours-card">
+        <h2>{t(lang, 'workHoursInfo')}</h2>
+        <div className="worker-hours-grid">
+          <div>
+            <strong>{t(lang, 'regular')}</strong>
+            <p>{t(lang, 'weekdayRegularHours')}</p>
+            <p>{t(lang, 'saturdayRegularHours')}</p>
+          </div>
+          <div>
+            <strong>{t(lang, 'overtime')}</strong>
+            <p>{t(lang, 'overtimeRule')}</p>
+          </div>
+        </div>
+        <Alert kind="info">{t(lang, 'sundayHoursRule')}</Alert>
+      </section>
+
       <form className="card" onSubmit={submit}>
         <h2>{t(lang, 'newEntry')}</h2>
         <div className="form-grid">
