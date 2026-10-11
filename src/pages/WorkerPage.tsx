@@ -76,7 +76,7 @@ export function WorkerPage({ lang, setLang, logout, name }: SharedPageProps) {
 
   return (
     <main className="shell wide">
-      <Header title={t(lang, '')} lang={lang} setLang={setLang} logout={logout} name={name} />
+      <Header title={t(lang, undefined)} lang={lang} setLang={setLang} logout={logout} name={name} />
 
       <section className="card worker-hours-summary">
         <h2>{t(lang, 'workHoursSummary')}</h2>
