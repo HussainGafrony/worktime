@@ -35,3 +35,39 @@ textarea:focus{border-color:var(--black);box-shadow:0 0 0 3px rgba(255,229,0,.42
 .original-message{padding:13px;background:var(--light);border-radius:11px;margin-bottom:12px}
 .character-count{text-align:right;font-size:12px;color:#666;margin-top:5px}
 @media(max-width:680px){.portal-nav{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.portal-nav button{justify-content:center;padding:9px 7px}.message-meta{flex-direction:column}.message-actions .primary.compact{width:100%}}
+
+/* UI/UX refinement */
+:root{--border:#dedede;--muted:#666;--focus:rgba(255,229,0,.42)}
+body{line-height:1.45}
+button,input,select,textarea{min-height:44px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.card{scroll-margin-top:16px}
+.portal-nav,.admin-nav{position:sticky;top:8px;z-index:10}
+.portal-nav button,.admin-nav button{min-height:42px}
+.section-heading h2,.card>h2{letter-spacing:-.01em}
+.table-wrap{scrollbar-width:thin}
+table tbody tr:last-child td{border-bottom:0}
+.message-card{transition:border-color .18s ease,box-shadow .18s ease}
+.message-card:hover{border-color:#c9c9c9;box-shadow:0 5px 16px rgba(17,17,17,.05)}
+.message-text p{max-width:78ch}
+.compose-button{white-space:nowrap}
+.character-count{font-variant-numeric:tabular-nums}
+.empty-state{padding:30px 18px;text-align:center;border:1px dashed #cfcfcf;border-radius:13px;background:#fafafa}
+.empty-state strong{display:block;margin-bottom:5px}
+.modal-card textarea{min-height:150px}
+.modal-card .section-heading{margin-bottom:8px}
+@media(max-width:680px){
+  body{background:#f7f7f7}
+  .shell{padding:8px}
+  .card{padding:17px;margin-top:12px}
+  .portal-nav,.admin-nav{top:4px;overflow-x:auto;flex-wrap:nowrap}
+  .admin-nav{display:flex}
+  .admin-nav button{flex:0 0 auto!important}
+  .stats{gap:8px}
+  .stats div{padding:13px}
+  .stats b{font-size:23px}
+  .table-wrap{border-radius:10px}
+  .modal-backdrop{align-items:flex-end;padding:0}
+  .modal-card{width:100%;max-height:90vh;border-radius:18px 18px 0 0;padding:18px;padding-bottom:max(18px,env(safe-area-inset-bottom))}
+  .modal-actions{position:sticky;bottom:0;background:var(--white);padding-top:10px}
+}
