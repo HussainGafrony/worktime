@@ -163,7 +163,7 @@ export function WorkerPage({ lang, setLang, logout, name }: SharedPageProps) {
           <div><h2>{t(lang, 'messages')}</h2><p className="muted">{t(lang, 'messagesIntro')}</p></div>
           <button type="button" className="primary compact compose-button" onClick={() => setComposeOpen(true)}><span aria-hidden="true">＋</span> {t(lang, 'newMessage')}</button>
         </div>
-        {loading ? <p className="muted">{t(lang, 'loading')}</p> : messages.length === 0 ? <p className="muted">{t(lang, 'noMessages')}</p> :
+        {loading ? <p className="muted">{t(lang, 'loading')}</p> : messages.length === 0 ? <div className="empty-state"><strong>{t(lang, 'noMessages')}</strong><span className="muted">{t(lang, 'messagesIntro')}</span></div> :
           <div className="message-list">{messages.map((row) => <article className="message-card" key={row._id}>
             <div className="message-meta"><strong>{name}</strong><time>{t(lang, 'messageDate')}: {formatSubmittedAt(row.createdAt)}</time></div>
             <ExpandableText text={row.body} lang={lang} />
