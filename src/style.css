@@ -12,3 +12,26 @@ textarea:focus{border-color:var(--black);box-shadow:0 0 0 3px rgba(255,229,0,.42
 .worker-hours-summary{border-top:5px solid var(--yellow)}
 .worker-summary-stats{margin-bottom:0}
 .worker-hours-summary .alert{margin-top:14px}
+
+.portal-nav{margin-top:14px;padding:4px;background:var(--white);border:1px solid #dcdcdc;border-radius:13px;width:max-content;max-width:100%;box-shadow:0 5px 18px rgba(17,17,17,.05)}
+.portal-nav button,.admin-nav button{display:inline-flex;align-items:center;gap:7px}
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--black);color:var(--white);font-size:11px;font-weight:800}
+.active .nav-badge{background:var(--black);color:var(--yellow)}
+.compose-button{display:inline-flex;align-items:center;gap:6px}
+.message-list{display:flex;flex-direction:column;gap:12px}
+.message-card{padding:16px;border:1px solid #dedede;border-radius:14px;background:var(--white)}
+.message-card.message-unread{border-left:5px solid var(--yellow);background:#fffef4}
+.message-meta{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.message-meta>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.message-meta time,.reply-box time{font-size:12px;color:#666}
+.sender-name{font-size:16px}
+.unread-pill{padding:4px 8px;border-radius:999px;background:var(--yellow);font-size:11px;font-weight:800}
+.message-text p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:0}
+.text-button{border:0;background:transparent;padding:5px 0 0;text-decoration:underline;font-weight:700}
+.reply-box{margin-top:14px;padding:13px;border-radius:11px;background:var(--light);border-left:4px solid var(--yellow)}
+.reply-box>strong{display:block;margin-bottom:7px}
+.reply-box time{display:block;margin-top:8px}
+.message-actions{display:flex;justify-content:flex-end;margin-top:12px}
+.original-message{padding:13px;background:var(--light);border-radius:11px;margin-bottom:12px}
+.character-count{text-align:right;font-size:12px;color:#666;margin-top:5px}
+@media(max-width:680px){.portal-nav{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.portal-nav button{justify-content:center;padding:9px 7px}.message-meta{flex-direction:column}.message-actions .primary.compact{width:100%}}
