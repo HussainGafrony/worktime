@@ -32,6 +32,18 @@ export interface SessionRecord {
   updatedAt?: Date;
 }
 
+export interface MessageRecord {
+  workerId: mongoose.Types.ObjectId;
+  workerNameSnapshot: string;
+  body: string;
+  readByAdmin: boolean;
+  readByWorker: boolean;
+  adminReply: string;
+  repliedAt: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface EntryRecord {
   workerId: mongoose.Types.ObjectId;
   workerNameSnapshot?: string;
@@ -94,11 +106,24 @@ entrySchema.index({ date: -1, workerId: 1 });
 entrySchema.index({ site: 1, date: -1 });
 entrySchema.index({ isLate: 1, date: -1 });
 
+const messageSchema = new mongoose.Schema<MessageRecord>({
+  workerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Worker', required: true, index: true },
+  workerNameSnapshot: { type: String, required: true, trim: true, maxlength: 80 },
+  body: { type: String, required: true, trim: true, minlength: 1, maxlength: 4000 },
+  readByAdmin: { type: Boolean, required: true, default: false, index: true },
+  readByWorker: { type: Boolean, required: true, default: true },
+  adminReply: { type: String, default: '', trim: true, maxlength: 4000 },
+  repliedAt: { type: Date, default: null }
+}, schemaOptions);
+messageSchema.index({ createdAt: -1 });
+messageSchema.index({ workerId: 1, createdAt: -1 });
+
 export const Admin = (mongoose.models.Admin as Model<AdminRecord>) || mongoose.model<AdminRecord>('Admin', adminSchema);
 export const Worker = (mongoose.models.Worker as Model<WorkerRecord>) || mongoose.model<WorkerRecord>('Worker', workerSchema);
 export const Site = (mongoose.models.Site as Model<SiteRecord>) || mongoose.model<SiteRecord>('Site', siteSchema);
 export const Entry = (mongoose.models.Entry as Model<EntryRecord>) || mongoose.model<EntryRecord>('Entry', entrySchema);
 export const Session = (mongoose.models.Session as Model<SessionRecord>) || mongoose.model<SessionRecord>('Session', sessionSchema);
+export const Message = (mongoose.models.Message as Model<MessageRecord>) || mongoose.model<MessageRecord>('Message', messageSchema);
 
 let connectionPromise: Promise<typeof mongoose> | null = null;
 let adminBootstrapPromise: Promise<void> | null = null;
