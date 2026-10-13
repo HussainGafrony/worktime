@@ -64,3 +64,26 @@ export type WorkerHoursSummary = {
   overtime: number;
   total: number;
 };
+
+export type Pagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+  pages: number;
+};
+
+export type WorkerEntriesResponse = {
+  items: Entry[];
+  pagination: Pagination;
+};
+
+export type WorkMessage = {
+  _id: string;
+  workerId?: string;
+  workerName: string;
+  body: string;
+  adminReply: string;
+  createdAt: string;
+  repliedAt?: string | null;
+  readByAdmin: boolean;
+};
