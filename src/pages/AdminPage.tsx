@@ -378,7 +378,7 @@ export function AdminPage({ lang, setLang, logout, name }: SharedPageProps) {
       {tab === 'messages' && (
         <section className="card">
           <div className="section-heading"><div><h2>{t(lang, 'messages')}</h2><p className="muted">{t(lang, 'messagesIntro')}</p></div></div>
-          {workMessages.length === 0 ? <p className="muted">{t(lang, 'noMessages')}</p> :
+          {workMessages.length === 0 ? <div className="empty-state"><strong>{t(lang, 'noMessages')}</strong><span className="muted">{t(lang, 'messagesIntro')}</span></div> :
             <div className="message-list">{workMessages.map((row) => <article className={`message-card ${row.readByAdmin ? '' : 'message-unread'}`} key={row._id}>
               <div className="message-meta">
                 <div><strong className="sender-name">{row.workerName}</strong>{!row.readByAdmin && <span className="unread-pill">{t(lang, 'unread')}</span>}</div>
