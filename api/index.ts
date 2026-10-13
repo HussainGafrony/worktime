@@ -1,7 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { AppError, text } from './lib/errors.js';
-import { Admin, Entry, Site, Worker, connectDatabase, databaseName, objectId, validId } from './lib/db.js';
+import { Admin, Entry, Message, Site, Worker, connectDatabase, databaseName, objectId, validId } from './lib/db.js';
 import { type AuthenticatedRequest, authenticate, createSession, findWorkerByPin, loginAdmin, requireAdmin, revokeSession, workerPinKey } from './lib/auth.js';
 import { adminEntryPage, allEntries, buildEntryQuery, listEntries } from './lib/entries.js';
 import { appDate, hoursFor, isLateSubmission, validateWorkDate } from './lib/time.js';
@@ -157,6 +157,127 @@ app.get('/api/worker/summary', authenticate, route(async (req, res) => {
     overtime,
     total: regular + overtime
   });
+}));
+
+app.get('/api/worker/entries', authenticate, route(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'worker') return fail(res, 403, 'WORKER_ONLY', 'Worker access is required.');
+
+  const page = pageNumber(req.query.page, 1, 100000);
+  const pageSize = pageNumber(req.query.pageSize, 20, 100);
+  const query = { workerId: objectId(user.id) };
+  const [items, total] = await Promise.all([
+    listEntries(query, pageSize, (page - 1) * pageSize),
+    Entry.countDocuments(query)
+  ]);
+
+  return res.json({
+    items,
+    pagination: { page, pageSize, total, pages: Math.max(1, Math.ceil(total / pageSize)) }
+  });
+}));
+
+app.get('/api/worker/messages', authenticate, route(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'worker') return fail(res, 403, 'WORKER_ONLY', 'Worker access is required.');
+
+  const workerId = objectId(user.id);
+  const rows = await Message.find({ workerId }).sort({ createdAt: -1 }).limit(200).lean();
+  await Message.updateMany(
+    { workerId, adminReply: { $ne: '' }, readByWorker: false },
+    { $set: { readByWorker: true } }
+  );
+
+  return res.json(rows.map((row: any) => ({
+    _id: String(row._id),
+    workerName: row.workerNameSnapshot,
+    body: row.body,
+    adminReply: row.adminReply || '',
+    createdAt: row.createdAt,
+    repliedAt: row.repliedAt || null,
+    readByAdmin: Boolean(row.readByAdmin)
+  })));
+}));
+
+app.get('/api/worker/messages/unread-count', authenticate, route(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'worker') return fail(res, 403, 'WORKER_ONLY', 'Worker access is required.');
+  const count = await Message.countDocuments({
+    workerId: objectId(user.id),
+    adminReply: { $ne: '' },
+    readByWorker: false
+  });
+  return res.json({ count });
+}));
+
+app.post('/api/worker/messages', authenticate, route(async (req, res) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (user.role !== 'worker') return fail(res, 403, 'WORKER_ONLY', 'Worker access is required.');
+
+  const body = text(req.body?.body);
+  if (!body) return fail(res, 400, 'MESSAGE_REQUIRED', 'Please write a message.');
+  if (body.length > 4000) return fail(res, 400, 'MESSAGE_TOO_LONG', 'Message must be 4000 characters or fewer.');
+
+  const worker = await Worker.findById(user.id).select('name active');
+  if (!worker || !worker.active) return fail(res, 401, 'AUTH_REQUIRED', 'Please sign in again.');
+
+  const message = await Message.create({
+    workerId: worker._id,
+    workerNameSnapshot: worker.name,
+    body,
+    readByAdmin: false,
+    readByWorker: true,
+    adminReply: '',
+    repliedAt: null
+  });
+  return res.status(201).json({ _id: String(message._id) });
+}));
+
+app.get('/api/admin/messages', authenticate, requireAdmin, route(async (_req, res) => {
+  const rows = await Message.find().sort({ createdAt: -1 }).limit(500).lean();
+  return res.json(rows.map((row: any) => ({
+    _id: String(row._id),
+    workerId: String(row.workerId),
+    workerName: row.workerNameSnapshot,
+    body: row.body,
+    adminReply: row.adminReply || '',
+    createdAt: row.createdAt,
+    repliedAt: row.repliedAt || null,
+    readByAdmin: Boolean(row.readByAdmin)
+  })));
+}));
+
+app.get('/api/admin/messages/unread-count', authenticate, requireAdmin, route(async (_req, res) => {
+  return res.json({ count: await Message.countDocuments({ readByAdmin: false }) });
+}));
+
+app.patch('/api/admin/messages/:id/read', authenticate, requireAdmin, route(async (req, res) => {
+  if (!validId(req.params.id)) return fail(res, 400, 'INVALID_MESSAGE', 'Message was not found.');
+  const message = await Message.findById(req.params.id);
+  if (!message) return fail(res, 404, 'MESSAGE_NOT_FOUND', 'Message was not found.');
+  if (!message.readByAdmin) {
+    message.readByAdmin = true;
+    await message.save();
+  }
+  return res.json({ ok: true });
+}));
+
+app.post('/api/admin/messages/:id/reply', authenticate, requireAdmin, route(async (req, res) => {
+  if (!validId(req.params.id)) return fail(res, 400, 'INVALID_MESSAGE', 'Message was not found.');
+  const reply = text(req.body?.reply);
+  if (!reply) return fail(res, 400, 'REPLY_REQUIRED', 'Please write a reply.');
+  if (reply.length > 4000) return fail(res, 400, 'MESSAGE_TOO_LONG', 'Reply must be 4000 characters or fewer.');
+
+  const message = await Message.findById(req.params.id);
+  if (!message) return fail(res, 404, 'MESSAGE_NOT_FOUND', 'Message was not found.');
+  if (message.adminReply) return fail(res, 409, 'REPLY_EXISTS', 'This message already has a reply.');
+
+  message.adminReply = reply;
+  message.repliedAt = new Date();
+  message.readByAdmin = true;
+  message.readByWorker = false;
+  await message.save();
+  return res.json({ ok: true });
 }));
 
 app.post('/api/entries', authenticate, route(async (req, res) => {
