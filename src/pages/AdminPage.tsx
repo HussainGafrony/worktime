@@ -3,14 +3,20 @@ import { api, apiDownload, ApiError } from '../api';
 import { Alert, Header, Stat, StatusBadge, type SharedPageProps } from '../components/Common';
 import { AdminEntriesTable } from '../components/EntriesTable';
 import { errorMessage, t } from '../i18n';
-import { formatHours, localToday } from '../lib/date';
-import type { AdminEntriesResponse, DashboardSummary, Entry, Site, Worker } from '../types';
+import { formatHours, formatSubmittedAt, localToday } from '../lib/date';
+import type { AdminEntriesResponse, DashboardSummary, Entry, Site, WorkMessage, Worker } from '../types';
 
-type AdminTab = 'timesheets' | 'workers' | 'sites';
+type AdminTab = 'timesheets' | 'workers' | 'sites' | 'messages';
 type Filters = { workerId: string; site: string; date: string; week: string; month: string };
 type SeedResult = { workersCreated: number; sitesCreated: number; entriesCreated: number };
 const emptyFilters: Filters = { workerId: '', site: '', date: '', week: '', month: '' };
 const seedDataEnabled = import.meta.env.VITE_ENABLE_SEED_DATA?.toLowerCase() === 'true';
+
+function AdminMessageText({ text, lang }: { text: string; lang: SharedPageProps['lang'] }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 240;
+  return <div className="message-text"><p>{long && !expanded ? text.slice(0, 240) + '…' : text}</p>{long && <button type="button" className="text-button" onClick={() => setExpanded((v) => !v)}>{t(lang, expanded ? 'showLess' : 'showMore')}</button>}</div>;
+}
 
 function queryString(filters: Filters, extra: Record<string, string | number | boolean> = {}) {
   const params = new URLSearchParams();
@@ -43,6 +49,10 @@ export function AdminPage({ lang, setLang, logout, name }: SharedPageProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [workMessages, setWorkMessages] = useState<WorkMessage[]>([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [replyMessage, setReplyMessage] = useState<WorkMessage | null>(null);
+  const [replyDraft, setReplyDraft] = useState('');
 
   const handleError = (err: unknown) => {
     if (err instanceof ApiError && err.code === 'AUTH_REQUIRED') logout();
@@ -79,8 +89,42 @@ export function AdminPage({ lang, setLang, logout, name }: SharedPageProps) {
     }
   };
 
-  useEffect(() => { void loadMeta(); }, []);
+  const loadMessages = async () => {
+    try {
+      const [rows, unread] = await Promise.all([
+        api<WorkMessage[]>('/admin/messages'),
+        api<{ count: number }>('/admin/messages/unread-count')
+      ]);
+      setWorkMessages(rows);
+      setUnreadMessages(unread.count);
+    } catch (err) { handleError(err); }
+  };
+
+  const openMessage = async (row: WorkMessage) => {
+    if (!row.readByAdmin) {
+      try {
+        await api(`/admin/messages/${row._id}/read`, { method: 'PATCH' });
+        setWorkMessages((current) => current.map((item) => item._id === row._id ? { ...item, readByAdmin: true } : item));
+        setUnreadMessages((count) => Math.max(0, count - 1));
+      } catch (err) { handleError(err); return; }
+    }
+    if (!row.adminReply) { setReplyMessage({ ...row, readByAdmin: true }); setReplyDraft(''); }
+  };
+
+  const sendReply = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!replyMessage || !replyDraft.trim()) return;
+    setSaving(true); setError('');
+    try {
+      await api(`/admin/messages/${replyMessage._id}/reply`, { method: 'POST', body: JSON.stringify({ reply: replyDraft.trim() }) });
+      setReplyMessage(null); setReplyDraft(''); setMessage(t(lang, 'replySent'));
+      await loadMessages();
+    } catch (err) { handleError(err); } finally { setSaving(false); }
+  };
+
+  useEffect(() => { void loadMeta(); void loadMessages(); }, []);
   useEffect(() => { void loadReport(page); }, [page, filters]);
+  useEffect(() => { if (tab === 'messages') void loadMessages(); }, [tab]);
 
   const setFilter = (patch: Partial<Filters>) => {
     setPage(1);
@@ -207,8 +251,10 @@ export function AdminPage({ lang, setLang, logout, name }: SharedPageProps) {
       <Header title={t(lang, 'dashboard')} lang={lang} setLang={setLang} logout={logout} name={name} />
       <div className="admin-toolbar">
         <nav className="nav admin-nav">
-          {(['timesheets', 'workers', 'sites'] as AdminTab[]).map((item) => (
-            <button type="button" key={item} className={tab === item ? 'active' : ''} onClick={() => setTab(item)}>{t(lang, item)}</button>
+          {(['timesheets', 'workers', 'sites', 'messages'] as AdminTab[]).map((item) => (
+            <button type="button" key={item} className={tab === item ? 'active' : ''} onClick={() => setTab(item)}>
+              {t(lang, item)}{item === 'messages' && unreadMessages > 0 && <span className="nav-badge">{unreadMessages}</span>}
+            </button>
           ))}
         </nav>
 
@@ -327,6 +373,35 @@ export function AdminPage({ lang, setLang, logout, name }: SharedPageProps) {
           </form>
           <div className="manage-list">{sites.map((site) => <div className="manage-row" key={site._id}><strong>{site.name}</strong><StatusBadge active={site.active} lang={lang} /><div className="button-row"><button type="button" onClick={() => setSiteDraft({ id: site._id, name: site.name })}>{t(lang, 'edit')}</button><button type="button" className={site.active ? 'danger-soft' : 'success-soft'} onClick={() => void toggleSite(site)}>{site.active ? t(lang, 'disable') : t(lang, 'enable')}</button></div></div>)}</div>
         </section>
+      )}
+
+      {tab === 'messages' && (
+        <section className="card">
+          <div className="section-heading"><div><h2>{t(lang, 'messages')}</h2><p className="muted">{t(lang, 'messagesIntro')}</p></div></div>
+          {workMessages.length === 0 ? <p className="muted">{t(lang, 'noMessages')}</p> :
+            <div className="message-list">{workMessages.map((row) => <article className={`message-card ${row.readByAdmin ? '' : 'message-unread'}`} key={row._id}>
+              <div className="message-meta">
+                <div><strong className="sender-name">{row.workerName}</strong>{!row.readByAdmin && <span className="unread-pill">{t(lang, 'unread')}</span>}</div>
+                <time>{t(lang, 'messageDate')}: {formatSubmittedAt(row.createdAt)}</time>
+              </div>
+              <AdminMessageText text={row.body} lang={lang} />
+              {row.adminReply ? <div className="reply-box"><strong>{t(lang, 'accountantReply')}</strong><AdminMessageText text={row.adminReply} lang={lang} />{row.repliedAt && <time>{formatSubmittedAt(row.repliedAt)}</time>}</div> :
+                <div className="message-actions"><button type="button" className="primary compact" onClick={() => void openMessage(row)}>{t(lang, 'reply')}</button></div>}
+            </article>)}</div>}
+        </section>
+      )}
+
+      {replyMessage && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setReplyMessage(null)}>
+          <form className="modal-card" onSubmit={sendReply} onMouseDown={(e) => e.stopPropagation()}>
+            <div className="section-heading"><div><h2>{t(lang, 'reply')}</h2><p className="muted">{replyMessage.workerName} — {formatSubmittedAt(replyMessage.createdAt)}</p></div><button type="button" className="icon-button" onClick={() => setReplyMessage(null)}>×</button></div>
+            <div className="original-message"><AdminMessageText text={replyMessage.body} lang={lang} /></div>
+            <label htmlFor="admin-reply">{t(lang, 'accountantReply')}</label>
+            <textarea id="admin-reply" value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} rows={7} maxLength={4000} required autoFocus />
+            <div className="character-count">{replyDraft.length} / 4000</div>
+            <div className="modal-actions"><button type="button" onClick={() => setReplyMessage(null)}>{t(lang, 'cancel')}</button><button className="primary compact" type="submit" disabled={saving || !replyDraft.trim()}>{saving ? t(lang, 'saving') : t(lang, 'sendReply')}</button></div>
+          </form>
+        </div>
       )}
 
       {noteEntry && (
